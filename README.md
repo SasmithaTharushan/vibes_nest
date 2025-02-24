@@ -15,4 +15,5 @@ Vibes Nest is a Flutter-based mental health app designed to support users in the
 Tech Stack:
 •Frontend: Built with Flutter for a seamless and intuitive experience
 •Backend: Powered by Firebase for real-time data handling and authentication
+![image](https://github.com/user-attachments/assets/99717202-42f1-4d6b-82aa-64b830a20d42)
 
