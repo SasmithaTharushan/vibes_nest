@@ -1,16 +1,19 @@
-# firstly
+#🌿 Vibes Nest - Your Personal Mental Wellness Companion
 
-A new Flutter project.
+Vibes Nest is a Flutter-based mental health app designed to support users in their wellness journey. It combines community engagement, self-care tools, and gamification to create a positive experience.
 
-## Getting Started
+🚀 Key Features:
 
-This project is a starting point for a Flutter application.
+✅ Community Support – Connect and engage with other users
+✅ Gamification – Plant virtual trees and earn vouchers (in development)
+✅ Sticky Notes – Save your thoughts and reflections
+✅ AI Chatbot – Feel supported and less isolated
+✅ Doctor Appointments – Book professional mental health support
+✅ Relaxation Hub – Access in-app music, books, and meditation videos
+✅ Wellness Tracking – Sleep tracking, mood tracking, and to-do lists
 
-A few resources to get you started if this is your first Flutter project:
+Tech Stack:
+	•	Frontend: Built with Flutter for a seamless and intuitive experience
+	•	Backend: Powered by Firebase for real-time data handling and authentication
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+📌 This project is in active development, and contributions are welcome!
