@@ -25,6 +25,23 @@ class WellnessRepository {
       _user.collection('tasks');
   CollectionReference<Map<String, dynamic>> get _chat =>
       _user.collection('chat');
+  CollectionReference<Map<String, dynamic>> get _hugged =>
+      _user.collection('hugged');
+  DocumentReference<Map<String, dynamic>> get _garden =>
+      _user.collection('garden').doc('stats');
+
+  // ---- My Garden ----
+  Stream<GardenStats> watchGarden() =>
+      _garden.snapshots().map((s) => GardenStats.fromMap(s.data()));
+
+  /// Adds points for a finished self-care activity and updates the streak.
+  Future<GardenStats> award(Activity activity, {DateTime? now}) =>
+      _db.runTransaction((tx) async {
+        final current = GardenStats.fromMap((await tx.get(_garden)).data());
+        final next = current.after(activity, now ?? DateTime.now());
+        tx.set(_garden, next.toMap());
+        return next;
+      });
 
   // ---- Talk to Nest ----
   Stream<List<ChatMessage>> watchChat({int limit = 100}) => _chat
@@ -56,8 +73,11 @@ class WellnessRepository {
       .snapshots()
       .map((s) => s.docs.map(MoodEntry.fromDoc).toList().reversed.toList());
 
-  Future<void> addMood(int mood, {DateTime? at}) => _moods.add(
-      MoodEntry(id: '', mood: mood, createdAt: at ?? DateTime.now()).toMap());
+  Future<void> addMood(int mood, {DateTime? at, bool award = true}) async {
+    await _moods.add(
+        MoodEntry(id: '', mood: mood, createdAt: at ?? DateTime.now()).toMap());
+    if (award) await this.award(Activity.mood);
+  }
 
   // ---- Sleep ----
   Stream<List<SleepEntry>> watchSleep({int limit = 14}) => _sleep
@@ -66,9 +86,12 @@ class WellnessRepository {
       .snapshots()
       .map((s) => s.docs.map(SleepEntry.fromDoc).toList());
 
-  Future<void> addSleep(DateTime bed, DateTime wake) => _sleep.add(SleepEntry(
-          id: '', bedTime: bed, wakeTime: wake, createdAt: DateTime.now())
-      .toMap());
+  Future<void> addSleep(DateTime bed, DateTime wake) async {
+    await _sleep.add(SleepEntry(
+            id: '', bedTime: bed, wakeTime: wake, createdAt: DateTime.now())
+        .toMap());
+    await award(Activity.sleep);
+  }
 
   Future<void> deleteSleep(String id) => _sleep.doc(id).delete();
 
@@ -78,9 +101,12 @@ class WellnessRepository {
       .snapshots()
       .map((s) => s.docs.map(JournalEntry.fromDoc).toList());
 
-  Future<void> addJournal(String text, {DateTime? at}) => _journal.add(
-      JournalEntry(id: '', text: text, createdAt: at ?? DateTime.now())
-          .toMap());
+  Future<void> addJournal(String text, {DateTime? at, bool award = true}) async {
+    await _journal.add(
+        JournalEntry(id: '', text: text, createdAt: at ?? DateTime.now())
+            .toMap());
+    if (award) await this.award(Activity.journal);
+  }
 
   Future<void> deleteJournal(String id) => _journal.doc(id).delete();
 
@@ -111,8 +137,15 @@ class WellnessRepository {
 
   /// Deletes every document this user owns. Used before deleting the account.
   Future<void> deleteAllData() async {
-    for (final c in [_moods, _sleep, _journal, _tasks, _chat]) {
+    for (final c in [_moods, _sleep, _journal, _tasks, _chat, _hugged]) {
       await _deleteAll(c);
+    }
+    await _garden.delete();
+    // Remove my community posts too (they are anonymous, but still mine).
+    final myPosts =
+        await _db.collection('posts').where('authorId', isEqualTo: uid).get();
+    for (final p in myPosts.docs) {
+      await p.reference.delete();
     }
     await _user.delete();
   }

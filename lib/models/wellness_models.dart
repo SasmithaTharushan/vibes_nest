@@ -180,3 +180,93 @@ class ChatMessage {
         'createdAt': Timestamp.fromDate(createdAt),
       };
 }
+
+/// Self-care activities that grow the garden, and how many points each earns.
+enum Activity {
+  mood(1, 'Mood check-in'),
+  journal(2, 'Journal note'),
+  sleep(2, 'Sleep log'),
+  breathing(3, 'Breathing session'),
+  grounding(3, 'Grounding exercise');
+
+  const Activity(this.points, this.label);
+  final int points;
+  final String label;
+}
+
+/// Progress in "My Garden".
+class GardenStats {
+  final int points;
+  final int streak;
+  final int bestStreak;
+  final String? lastActiveDay; // yyyy-MM-dd
+  final Map<String, int> counts;
+
+  const GardenStats({
+    this.points = 0,
+    this.streak = 0,
+    this.bestStreak = 0,
+    this.lastActiveDay,
+    this.counts = const {},
+  });
+
+  static const pointsPerPlant = 10;
+
+  /// Fully grown plants.
+  int get plants => points ~/ pointsPerPlant;
+
+  /// Progress (0–9) towards the next plant.
+  int get growth => points % pointsPerPlant;
+
+  /// Streak still counts if the last activity was today or yesterday.
+  int currentStreak(DateTime now) {
+    if (lastActiveDay == null) return 0;
+    final today = dayKey(now);
+    final yesterday = dayKey(now.subtract(const Duration(days: 1)));
+    return lastActiveDay == today || lastActiveDay == yesterday ? streak : 0;
+  }
+
+  factory GardenStats.fromMap(Map<String, dynamic>? d) {
+    if (d == null) return const GardenStats();
+    return GardenStats(
+      points: (d['points'] as num?)?.toInt() ?? 0,
+      streak: (d['streak'] as num?)?.toInt() ?? 0,
+      bestStreak: (d['bestStreak'] as num?)?.toInt() ?? 0,
+      lastActiveDay: d['lastActiveDay'] as String?,
+      counts: {
+        for (final e in ((d['counts'] as Map?) ?? const {}).entries)
+          e.key as String: (e.value as num).toInt(),
+      },
+    );
+  }
+
+  /// Returns the stats after doing [activity] at [now].
+  GardenStats after(Activity activity, DateTime now) {
+    final today = dayKey(now);
+    final yesterday = dayKey(now.subtract(const Duration(days: 1)));
+    final newStreak = lastActiveDay == today
+        ? streak
+        : lastActiveDay == yesterday
+            ? streak + 1
+            : 1;
+    return GardenStats(
+      points: points + activity.points,
+      streak: newStreak,
+      bestStreak: newStreak > bestStreak ? newStreak : bestStreak,
+      lastActiveDay: today,
+      counts: {...counts, activity.name: (counts[activity.name] ?? 0) + 1},
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'points': points,
+        'streak': streak,
+        'bestStreak': bestStreak,
+        'lastActiveDay': lastActiveDay,
+        'counts': counts,
+        'updatedAt': Timestamp.now(),
+      };
+
+  static String dayKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}

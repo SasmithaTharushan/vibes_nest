@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../models/wellness_models.dart';
+import '../services/app_services.dart';
 import 'breath_control_page.dart';
 import 'crisis_help_page.dart';
 
@@ -44,6 +46,13 @@ class _StayCalmPageState extends State<StayCalmPage> {
         _done = true;
       }
     });
+    if (_done) {
+      final repo = AppServices.maybeRepo(context);
+      final messenger = ScaffoldMessenger.of(context);
+      repo?.award(Activity.grounding).then((_) => messenger.showSnackBar(
+          const SnackBar(content: Text('+3 garden points for grounding 🌱'))),
+          onError: (Object _) {});
+    }
   }
 
   void _restart() => setState(() {

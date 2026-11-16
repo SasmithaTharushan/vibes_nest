@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../models/wellness_models.dart';
+import '../services/app_services.dart';
+
 /// A guided breathing exercise with an animated circle.
 class BreathControlPage extends StatefulWidget {
   const BreathControlPage({super.key});
@@ -83,6 +86,14 @@ class _BreathControlPageState extends State<BreathControlPage>
       _running = false;
       _scale = const AlwaysStoppedAnimation(0.5);
     });
+    // At least one full cycle counts as a session for My Garden.
+    if (_cycles > 0) {
+      final repo = AppServices.maybeRepo(context);
+      final messenger = ScaffoldMessenger.of(context);
+      repo?.award(Activity.breathing).then((_) => messenger.showSnackBar(
+          const SnackBar(content: Text('+3 garden points for breathing 🌱'))),
+          onError: (Object _) {});
+    }
   }
 
   void _runPhase({required double from}) {

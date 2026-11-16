@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../data/community_repository.dart';
 import '../data/wellness_repository.dart';
 import 'auth_service.dart';
 import 'companion_ai.dart';
@@ -32,6 +33,20 @@ class AppServices extends InheritedWidget {
   static WellnessRepository repo(BuildContext context) {
     final auth = AppServices.auth(context);
     return auth.repositoryFor(auth.currentUser!);
+  }
+
+  /// Like [repo], but returns null when there are no services or no user
+  /// (for screens such as Breath Control that also work on their own).
+  static WellnessRepository? maybeRepo(BuildContext context) {
+    final services = context.getInheritedWidgetOfExactType<AppServices>();
+    final user = services?.authService.currentUser;
+    return user == null ? null : services!.authService.repositoryFor(user);
+  }
+
+  /// The shared community, as the signed-in user.
+  static CommunityRepository community(BuildContext context) {
+    final auth = AppServices.auth(context);
+    return auth.communityFor(auth.currentUser!);
   }
 
   @override

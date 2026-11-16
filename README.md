@@ -19,8 +19,9 @@ Vibes Nest is a Flutter app that brings everyday mental wellness tools into one 
 | 📝 **Let It Go** | Private journal, synced to your account |
 | 😴 **Sleep tracker** | Log nights (handles past-midnight bedtimes), star ratings, averages, tomorrow's tasks |
 | 📈 **Mood tracker** | Dated check-ins and a 30-day chart |
-| 👥 **Community** | Share posts by topic, send "hugs", join the WhatsApp group |
-| 📅 **Appointments** | Pick a counsellor, date and time, online or in person |
+| 👥 **Community** | Real-time, anonymous posts with friendly nicknames, one hug per person, report (auto-hides after 3), crisis check before posting |
+| 🌱 **My Garden** | Earn points from real self-care (mood, journal, sleep, breathing, grounding); plants bloom every 10 points; daily streaks |
+| 🩺 **Find professional help** | Verified Sri Lankan counselling services and helplines with call, WhatsApp and website buttons |
 
 ## Tech stack
 
@@ -43,6 +44,8 @@ lib/
     local_migration.dart     One-time move of old on-device data to the cloud
     companion_ai.dart        Gemini companion + offline fallback
     crisis_detector.dart     On-device crisis check and tool suggestions
+  data/help_directory.dart   Verified helplines (single source of truth)
+  data/community_repository.dart  Anonymous posts, hugs, reports
   data/
     wellness_repository.dart Firestore reads/writes under users/{uid}/...
   models/
@@ -90,7 +93,7 @@ flutter test
 - [x] **Phase 1:** Cleanup, security fixes, no more dead-end screens, crisis support
 - [x] **Phase 2:** Firebase Authentication and cloud sync (Firestore)
 - [x] **Phase 3:** AI companion powered by Gemini (via Firebase AI Logic, so no keys in the app)
-- [ ] **Phase 4:** Real-time community, real appointment booking, "grow a tree" rewards
+- [x] **Phase 4:** Real-time anonymous community, verified help directory, "My Garden" rewards
 - [ ] **Phase 5:** Polished UI, CI build, signed release APK
 
 ## Author

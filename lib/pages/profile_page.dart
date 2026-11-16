@@ -7,6 +7,7 @@ import 'package:vibes_nest/pages/progress_tracker.dart';
 import 'package:vibes_nest/services/app_services.dart';
 import 'package:vibes_nest/services/auth_service.dart';
 import 'package:vibes_nest/widgets/profile_widget.dart';
+import 'package:vibes_nest/widgets/text_prompt_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -34,28 +35,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _editName() async {
-    final controller = TextEditingController(text: _auth.displayName);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Your name'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(hintText: 'Full name'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Save')),
-        ],
-      ),
+    final name = await showTextPrompt(
+      context,
+      title: 'Your name',
+      confirmLabel: 'Save',
+      hint: 'Full name',
+      initialValue: _auth.displayName,
+      capitalization: TextCapitalization.words,
     );
-    controller.dispose();
     if (name == null || name.isEmpty || !mounted) return;
     try {
       await _auth.updateName(name);
@@ -94,40 +81,17 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _deleteAccount() async {
-    final passwordController = TextEditingController();
-    final password = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-                'This permanently deletes your account and all your moods, '
-                'sleep logs, journal notes and tasks. This cannot be undone.'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  labelText: 'Enter your password to confirm'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, passwordController.text),
-            child: const Text('Delete forever'),
-          ),
-        ],
-      ),
+    final password = await showTextPrompt(
+      context,
+      title: 'Delete account?',
+      message: 'This permanently deletes your account and all your moods, '
+          'sleep logs, journal notes, tasks, chats, garden and community '
+          'posts. This cannot be undone.',
+      label: 'Enter your password to confirm',
+      obscure: true,
+      destructive: true,
+      confirmLabel: 'Delete forever',
     );
-    passwordController.dispose();
     if (password == null || password.isEmpty || !mounted) return;
     final auth = _auth;
     final navigator = Navigator.of(context);

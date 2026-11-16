@@ -2,9 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'meditation_page.dart';
 import 'library_page.dart';
 import 'music_page.dart';
-import 'root_page.dart';
+import 'garden_page.dart';
 import 'community.dart';
-import 'appointments_page.dart'; // Import Appointments Page
+import 'find_help_page.dart';
 import 'let_it_go_page.dart';
 import 'chat_screen.dart';
 import 'sleep_traking_page.dart';
@@ -39,6 +39,12 @@ class _HomePageState extends State<HomePage> {
   final Map<String, List<Map<String, dynamic>>> _categoryContent = {
     'Recommended': [
       {
+        'title': 'My Garden',
+        'subtitle': 'Grow plants with every bit of self-care',
+        'color': Color(0xff296e48),
+        'icon': Icons.yard,
+      },
+      {
         'title': 'Access our library',
         'subtitle': 'From conflict to harmony',
         'color': Colors.greenAccent,
@@ -57,10 +63,10 @@ class _HomePageState extends State<HomePage> {
         'icon': Icons.cloud,
       },
       {
-        'title': 'Book an Appointment',
-        'subtitle': 'Schedule time with a professional',
+        'title': 'Find professional help',
+        'subtitle': 'Verified counselling services in Sri Lanka',
         'color': Colors.lightBlueAccent,
-        'icon': Icons.calendar_today,
+        'icon': Icons.health_and_safety,
       },
     ],
     'Breathe': [
@@ -165,10 +171,10 @@ class _HomePageState extends State<HomePage> {
         context,
         MaterialPageRoute(builder: (context) => BreathingPage()),
       );
-    } else if (title == 'Book an Appointment') {
+    } else if (title == 'Find professional help') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => AppointmentsPage()),
+        MaterialPageRoute(builder: (context) => const FindHelpPage()),
       );
     } else if (title == 'Join Discussions') {
       Navigator.push(
@@ -184,6 +190,11 @@ class _HomePageState extends State<HomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const BreathControlPage()),
+      );
+    } else if (title == 'My Garden') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const GardenPage()),
       );
     } else if (title == 'Stay Calm') {
       Navigator.push(
@@ -221,7 +232,7 @@ class _HomePageState extends State<HomePage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const RootPage()),
+                MaterialPageRoute(builder: (context) => const GardenPage()),
               );
             },
             child: const Padding(

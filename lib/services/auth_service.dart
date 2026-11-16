@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../data/community_repository.dart';
 import '../data/wellness_repository.dart';
 
 /// Thrown with a message that is safe to show to the user.
@@ -28,6 +29,9 @@ class AuthService {
     final email = user?.email;
     return email != null ? email.split('@').first : 'Friend';
   }
+
+  CommunityRepository communityFor(User user) =>
+      CommunityRepository(_db, user.uid);
 
   WellnessRepository repositoryFor(User user) =>
       WellnessRepository(_db, user.uid);

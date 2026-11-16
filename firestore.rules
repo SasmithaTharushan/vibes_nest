@@ -1,17 +1,87 @@
 rules_version = '2';
 
 // Vibes Nest security rules.
-// Each person can read and write ONLY their own data under users/{uid}.
+// - users/{uid}/...: private. Only that person can read or write it.
+// - posts/...: the shared anonymous community, readable by signed-in users,
+//   with hugs and reports counted fairly (one per person).
 // Everything else is denied by default.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return signedIn() && request.auth.uid == uid;
     }
 
     function validTime(t) {
       return t is timestamp;
+    }
+
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // ---------------- Community ----------------
+    match /posts/{postId} {
+      function myHugMarker() {
+        return /databases/$(database)/documents/users/$(request.auth.uid)/hugged/$(postId);
+      }
+      function myReport() {
+        return /databases/$(database)/documents/posts/$(postId)/reports/$(request.auth.uid);
+      }
+
+      allow read: if signedIn()
+        && (resource.data.hidden == false
+            || resource.data.authorId == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['authorId', 'nickname', 'topic', 'text', 'createdAt', 'hugs', 'reports', 'hidden'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() <= 40
+        && request.resource.data.topic in
+             ['Dealing with Anxiety', 'Self-Care Tips', 'Mindfulness', 'Gratitude']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && validTime(request.resource.data.createdAt)
+        && request.resource.data.hugs == 0
+        && request.resource.data.reports == 0
+        && request.resource.data.hidden == false;
+
+      allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+
+      // Other people can only: hug (+1, once), un-hug (-1), or report (+1, once).
+      allow update: if signedIn()
+        && request.auth.uid != resource.data.authorId
+        && (
+          // Hug: my private marker is created in the same write.
+          (onlyChanged(['hugs'])
+            && request.resource.data.hugs == resource.data.hugs + 1
+            && !exists(myHugMarker()) && existsAfter(myHugMarker()))
+          ||
+          // Un-hug: my marker is removed in the same write.
+          (onlyChanged(['hugs'])
+            && request.resource.data.hugs == resource.data.hugs - 1
+            && exists(myHugMarker()) && !existsAfter(myHugMarker()))
+          ||
+          // Report: one per person; hidden once there are 3 or more.
+          (onlyChanged(['reports', 'hidden'])
+            && request.resource.data.reports == resource.data.reports + 1
+            && request.resource.data.hidden == (request.resource.data.reports >= 3)
+            && !exists(myReport()) && existsAfter(myReport()))
+        );
+
+      match /reports/{reporterId} {
+        allow read: if isOwner(reporterId);
+        allow create: if isOwner(reporterId)
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && validTime(request.resource.data.createdAt);
+      }
     }
 
     match /users/{uid} {
@@ -76,6 +146,27 @@ service cloud.firestore {
           && (!('tool' in request.resource.data)
               || request.resource.data.tool in ['crisis', 'grounding', 'breathing', 'sleep', 'journal'])
           && validTime(request.resource.data.createdAt);
+      }
+
+      // Private markers of community posts I hugged.
+      match /hugged/{postId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && validTime(request.resource.data.createdAt);
+      }
+
+      // My Garden progress (a single "stats" document).
+      match /garden/{docId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && docId == 'stats'
+          && request.resource.data.keys().hasOnly(
+               ['points', 'streak', 'bestStreak', 'lastActiveDay', 'counts', 'updatedAt'])
+          && request.resource.data.points is int
+          && request.resource.data.points >= 0
+          && request.resource.data.streak is int
+          && request.resource.data.bestStreak is int;
       }
     }
   }

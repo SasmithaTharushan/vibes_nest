@@ -8,6 +8,7 @@ class LocalMigration {
   static const _journalKey = 'journal_entries';
   static const _moodKey = 'mood_data';
   static const _oldProfileKeys = [
+    'community_posts', // Phase 1 device-only posts (had real names)
     'profile_name',
     'profile_email',
     'profile_signed_in',
@@ -24,7 +25,8 @@ class LocalMigration {
     for (var i = 0; i < journal.length; i++) {
       final text = journal[i].trim();
       if (text.isEmpty) continue;
-      await repo.addJournal(text, at: now.subtract(Duration(minutes: i)));
+      await repo.addJournal(text,
+          at: now.subtract(Duration(minutes: i)), award: false);
       moved++;
     }
 
@@ -33,7 +35,7 @@ class LocalMigration {
       final mood = int.tryParse(moods[i]);
       if (mood == null || mood < 0 || mood > 2) continue;
       // Old moods had no dates: space them one day apart, ending today.
-      await repo.addMood(mood,
+      await repo.addMood(mood, award: false,
           at: now.subtract(Duration(days: moods.length - 1 - i)));
       moved++;
     }
