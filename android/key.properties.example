@@ -1,0 +1,13 @@
+# Copy this file to android/key.properties and fill in your own values.
+# key.properties and the .jks keystore are in .gitignore. NEVER commit them.
+#
+# Create the keystore once (keep it and its passwords somewhere safe, e.g. a
+# password manager; if you lose it you can't update your app on Google Play):
+#
+#   keytool -genkey -v -keystore %USERPROFILE%\vibes-nest-upload.jks ^
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=C:/Users/YOUR_NAME/vibes-nest-upload.jks

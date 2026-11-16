@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vibes_nest/constants.dart';
 import 'package:vibes_nest/pages/crisis_help_page.dart';
 import 'package:vibes_nest/pages/faq_page.dart';
@@ -20,6 +21,8 @@ class _ProfilePageState extends State<ProfilePage> {
   static const _shareText =
       'I use Vibes Nest to look after my mental wellbeing. Check it out: '
       'https://github.com/SasmithaTharushan/vibes_nest';
+  static const _privacyUrl =
+      'https://github.com/SasmithaTharushan/vibes_nest/blob/main/PRIVACY.md';
 
   AuthService get _auth => AppServices.auth(context);
 
@@ -177,6 +180,12 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icons.help_outline,
             title: 'FAQs',
             onTap: () => _open(const FaqPage()),
+          ),
+          ProfileWidget(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Privacy policy',
+            onTap: () => launchUrl(Uri.parse(_privacyUrl),
+                mode: LaunchMode.externalApplication),
           ),
           ProfileWidget(
             icon: Icons.share,

@@ -18,8 +18,29 @@ class FaqPage extends StatelessWidget {
     ),
     (
       'Where is my data stored?',
-      'Right now your journal, mood and sleep entries are saved only on this '
-          'device. Cloud sync with your account is coming in a future update.'
+      'Your moods, sleep logs, journal, tasks and chats are stored securely in '
+          'your account with Google Firebase, so they sync across devices. Only '
+          'you can read them. You can delete everything from Profile → Delete '
+          'account. See the Privacy policy in your Profile for details.'
+    ),
+    (
+      'Is "Talk to Nest" a real person?',
+      'No. Nest is an AI companion powered by Google Gemini. It can listen and '
+          'suggest helpful tools, but it is not a therapist. If you are in '
+          'crisis, Nest shows helplines instead, and those messages are never '
+          'sent to the AI.'
+    ),
+    (
+      'Can other people see who I am in the Community?',
+      'No. You appear under a friendly nickname like "Calm Otter". Your name '
+          'and email are never shown. You can delete your own posts at any '
+          'time, and report posts that are unkind or unsafe.'
+    ),
+    (
+      'How does My Garden work?',
+      'Each bit of self-care earns points: a mood check-in, a journal note, a '
+          'sleep log, or finishing a breathing or grounding session. Every 10 '
+          'points grows a new plant. Do something each day to build a streak.'
     ),
     (
       'How do I use the breathing exercises?',

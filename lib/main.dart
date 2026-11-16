@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:vibes_nest/firebase_options.dart';
 import 'package:vibes_nest/pages/home.dart';
@@ -13,6 +15,15 @@ import 'package:vibes_nest/services/local_migration.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // App Check proves requests come from the real Vibes Nest app, protecting
+  // Firestore and Gemini (AI Logic) from abuse with copied config.
+  // Debug builds print a debug token to the log; register it in
+  // Firebase console → App Check → Apps → Manage debug tokens.
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: kReleaseMode
+        ? const AndroidPlayIntegrityProvider()
+        : const AndroidDebugProvider(),
+  );
   runApp(AppServices(
     authService: AuthService(FirebaseAuth.instance, FirebaseFirestore.instance),
     companionAi: GeminiCompanionAi(),
