@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:firstly/constants.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/constants.dart';
 
 class CustomTextfield extends StatelessWidget {
   final IconData icon;
@@ -7,11 +7,11 @@ class CustomTextfield extends StatelessWidget {
   final String hintText;
 
   const CustomTextfield({
-    Key? key,
+    super.key,
     required this.icon,
     required this.obscureText,
     required this.hintText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

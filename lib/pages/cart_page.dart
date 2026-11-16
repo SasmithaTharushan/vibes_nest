@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:firstly/constants.dart';
-import 'package:firstly/models/plants.dart';
-import 'package:firstly/widgets/plant_widget.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/constants.dart';
+import 'package:vibes_nest/models/plants.dart';
+import 'package:vibes_nest/widgets/plant_widget.dart';
 
 class CartPage extends StatefulWidget {
   final List<Plant> addedToCartPlants;
-  const CartPage({Key? key, required this.addedToCartPlants}) : super(key: key);
+  const CartPage({super.key, required this.addedToCartPlants});
 
   @override
   State<CartPage> createState() => _CartPageState();

@@ -1,0 +1,30 @@
+# Flutter / Dart build output
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+*.iml
+.idea/
+
+# Android
+**/android/local.properties
+**/android/.gradle
+**/android/captures/
+**/android/key.properties
+*.jks
+*.keystore
+
+# Secrets — never commit these
+.env
+*.env
+dart_defines.json
+**/google-services.json
+**/GoogleService-Info.plist
+
+# OS / misc
+.DS_Store
+Thumbs.db
+*.log

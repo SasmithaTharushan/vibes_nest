@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:material_ui/material_ui.dart';
 import 'meditation_page.dart';
 import 'library_page.dart';
 import 'music_page.dart';
@@ -11,18 +10,38 @@ import 'chat_screen.dart';
 import 'sleep_traking_page.dart';
 import 'breathing_page.dart';
 import 'progress_tracker.dart';
-import 'profile_page.dart'; // Import ProfilePage
+import 'profile_page.dart';
+import 'breath_control_page.dart';
+import 'stay_calm_page.dart';
+import 'crisis_help_page.dart';
+import '../services/local_profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   String _selectedCategory = 'Recommended';
   int _selectedIndex = 0;
+  String _name = '';
+
+  @override
+  void initState() {
+    super.initState();
+    LocalProfile.name().then((n) {
+      if (mounted) setState(() => _name = n);
+    });
+  }
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   final Map<String, List<Map<String, dynamic>>> _categoryContent = {
     'Recommended': [
@@ -168,16 +187,18 @@ class _HomePageState extends State<HomePage> {
         context,
         MaterialPageRoute(builder: (context) => const LetItGoPage()),
       );
-    } else {
+    } else if (title == 'Breath Control') {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => Scaffold(
-            appBar: AppBar(title: Text(title)),
-            body: Center(child: Text('Content for $title')),
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => const BreathControlPage()),
       );
+    } else if (title == 'Stay Calm') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const StayCalmPage()),
+      );
+    } else {
+      assert(false, 'No page registered for "$title"');
     }
   }
 
@@ -195,6 +216,14 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Get help now',
+            icon: const Icon(Icons.sos, color: Colors.red),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CrisisHelpPage()),
+            ),
+          ),
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -204,7 +233,7 @@ class _HomePageState extends State<HomePage> {
             },
             child: const Padding(
               padding: EdgeInsets.all(8.0),
-              child: Icon(Bootstrap.tree),
+              child: Icon(Icons.park_outlined),
             ),
           ),
         ],
@@ -223,291 +252,8 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Good Day, User',
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            Text(
+              '$_greeting, $_name',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -619,110 +365,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:firstly/constants.dart';
-import 'package:firstly/widgets/custom_textfield.dart';
-import 'package:firstly/pages/signin_screen.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/constants.dart';
+import 'package:vibes_nest/widgets/custom_textfield.dart';
+import 'package:vibes_nest/pages/signin_screen.dart';
 import 'package:page_transition/page_transition.dart';
 
 class ForgotPassword extends StatelessWidget {
-  const ForgotPassword({Key? key}) : super(key: key);
+  const ForgotPassword({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,23 @@ class ForgotPassword extends StatelessWidget {
                 icon: Icons.alternate_email,
               ),
               GestureDetector(
-                onTap: () {},
+                // TODO(phase-2): call FirebaseAuth.sendPasswordResetEmail.
+                onTap: () => showDialog<void>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('No password needed yet'),
+                    content: const Text(
+                        'Your account is currently saved on this device only, '
+                        'so you can sign in with just your email. Password '
+                        'reset emails will arrive with cloud accounts soon.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                ),
                 child: Container(
                   width: size.width,
                   decoration: BoxDecoration(

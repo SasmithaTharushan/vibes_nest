@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:firstly/constants.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/constants.dart';
 
 class ScanPage extends StatefulWidget {
-  const ScanPage({Key? key}) : super(key: key);
+  const ScanPage({super.key});
 
   @override
   State<ScanPage> createState() => _ScanPageState();

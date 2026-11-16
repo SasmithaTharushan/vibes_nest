@@ -1,16 +1,16 @@
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
-import 'package:flutter/material.dart';
-import 'package:firstly/constants.dart';
-import 'package:firstly/models/plants.dart';
-import 'package:firstly/pages/scan_page.dart';
-import 'package:firstly/pages/cart_page.dart';
-import 'package:firstly/pages/favorite_page.dart';
-import 'package:firstly/pages/plant_home_page.dart';
-import 'package:firstly/pages/profile_page.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/constants.dart';
+import 'package:vibes_nest/models/plants.dart';
+import 'package:vibes_nest/pages/scan_page.dart';
+import 'package:vibes_nest/pages/cart_page.dart';
+import 'package:vibes_nest/pages/favorite_page.dart';
+import 'package:vibes_nest/pages/plant_home_page.dart';
+import 'package:vibes_nest/pages/profile_page.dart';
 import 'package:page_transition/page_transition.dart';
 
 class RootPage extends StatefulWidget {
-  const RootPage({Key? key}) : super(key: key);
+  const RootPage({super.key});
 
   @override
   State<RootPage> createState() => _RootPageState();
@@ -89,17 +89,17 @@ class _RootPageState extends State<RootPage> {
                   child: const ScanPage(),
                   type: PageTransitionType.bottomToTop));
         },
+        backgroundColor: Constants.primaryColor,
         child: Image.asset(
           'assets/images/code-scan-two.png',
           height: 30.0,
         ),
-        backgroundColor: Constants.primaryColor,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: AnimatedBottomNavigationBar(
           splashColor: Constants.primaryColor,
           activeColor: Constants.primaryColor,
-          inactiveColor: Colors.black.withOpacity(.5),
+          inactiveColor: Colors.black.withValues(alpha: .5),
           icons: iconList,
           activeIndex: _bottomNavIndex,
           gapLocation: GapLocation.center,

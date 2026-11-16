@@ -6,18 +6,18 @@
     "configurations": [
         
         {
-            "name": "firstly",
+            "name": "Vibes Nest",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "firstly (profile mode)",
+            "name": "Vibes Nest (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "firstly (release mode)",
+            "name": "Vibes Nest (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

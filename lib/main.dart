@@ -1,17 +1,29 @@
-import 'package:firstly/pages/welcome_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/pages/home.dart';
+import 'package:vibes_nest/pages/welcome_screen.dart';
+import 'package:vibes_nest/services/local_profile.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final signedIn = await LocalProfile.isSignedIn();
+  runApp(VibesNestApp(signedIn: signedIn));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class VibesNestApp extends StatelessWidget {
+  const VibesNestApp({super.key, required this.signedIn});
 
-  // This widget is the root of your application.
+  final bool signedIn;
+
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-        debugShowCheckedModeBanner: false, home: WelcomeScreen());
+    return MaterialApp(
+      title: 'Vibes Nest',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorSchemeSeed: const Color(0xff296e48),
+        useMaterial3: true,
+      ),
+      home: signedIn ? const HomePage() : const WelcomeScreen(),
+    );
   }
 }

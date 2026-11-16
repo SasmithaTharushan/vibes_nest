@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:convert';
 
 class ProgressTrackerPage extends StatefulWidget {
   const ProgressTrackerPage({super.key});
@@ -12,7 +11,7 @@ class ProgressTrackerPage extends StatefulWidget {
 
 class _ProgressTrackerPageState extends State<ProgressTrackerPage> {
   List<int> _moodData = [];
-  List<String> _moodLabels = ['😞', '😐', '😊'];
+  final List<String> _moodLabels = ['😞', '😐', '😊'];
 
   @override
   void initState() {

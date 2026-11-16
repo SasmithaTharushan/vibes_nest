@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:firstly/constants.dart';
-import 'package:firstly/models/plants.dart';
-import 'package:firstly/pages/detail_page.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/constants.dart';
+import 'package:vibes_nest/models/plants.dart';
+import 'package:vibes_nest/pages/detail_page.dart';
 import 'package:page_transition/page_transition.dart';
 
 class PlantWidget extends StatelessWidget {
   const PlantWidget({
-    Key? key,
+    super.key,
     required this.index,
     required this.plantList,
-  }) : super(key: key);
+  });
 
   final int index;
   final List<Plant> plantList;
