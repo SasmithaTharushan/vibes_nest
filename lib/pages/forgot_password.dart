@@ -1,108 +1,119 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:vibes_nest/constants.dart';
-import 'package:vibes_nest/widgets/custom_textfield.dart';
 import 'package:vibes_nest/pages/signin_screen.dart';
-import 'package:page_transition/page_transition.dart';
+import 'package:vibes_nest/services/app_services.dart';
+import 'package:vibes_nest/services/auth_service.dart';
 
-class ForgotPassword extends StatelessWidget {
-  const ForgotPassword({super.key});
+class ForgotPassword extends StatefulWidget {
+  const ForgotPassword({super.key, this.initialEmail = ''});
+
+  final String initialEmail;
+
+  @override
+  State<ForgotPassword> createState() => _ForgotPasswordState();
+}
+
+class _ForgotPasswordState extends State<ForgotPassword> {
+  final _formKey = GlobalKey<FormState>();
+  late final _emailController = TextEditingController(text: widget.initialEmail);
+  bool _busy = false;
+  bool _sent = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _busy = true);
+    try {
+      await AppServices.auth(context).sendPasswordReset(_emailController.text);
+      if (mounted) setState(() => _sent = true);
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Size size = MediaQuery.of(context).size;
-
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      appBar: AppBar(),
+      body: SafeArea(
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Image.asset('assets/images/reset-password.png'),
-              const Text(
-                'Forgot\nPassword',
-                style: TextStyle(
-                  fontSize: 35.0,
-                  fontWeight: FontWeight.w700,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Image.asset('assets/images/reset-password.png', height: 220),
+                const Text(
+                  'Forgot\nPassword',
+                  style: TextStyle(fontSize: 35.0, fontWeight: FontWeight.w700),
                 ),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              const CustomTextfield(
-                obscureText: false,
-                hintText: 'Enter Email',
-                icon: Icons.alternate_email,
-              ),
-              GestureDetector(
-                // TODO(phase-2): call FirebaseAuth.sendPasswordResetEmail.
-                onTap: () => showDialog<void>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('No password needed yet'),
-                    content: const Text(
-                        'Your account is currently saved on this device only, '
-                        'so you can sign in with just your email. Password '
-                        'reset emails will arrive with cloud accounts soon.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
+                const SizedBox(height: 12),
+                Text(
+                  _sent
+                      ? 'Check your inbox. If an account exists for '
+                          '${_emailController.text.trim()}, we\'ve sent a link '
+                          'to reset your password. Check the spam folder too.'
+                      : 'Enter the email you signed up with and we\'ll send '
+                          'you a link to choose a new password.',
+                  style: TextStyle(color: Constants.blackColor, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: validateEmail,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.alternate_email),
+                    hintText: 'Enter Email',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-                child: Container(
-                  width: size.width,
-                  decoration: BoxDecoration(
-                    color: Constants.primaryColor,
-                    borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 16),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Constants.primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-                  child: const Center(
-                    child: Text(
-                      'Reset Password',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.0,
-                      ),
+                  onPressed: _busy ? null : _send,
+                  child: _busy
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Text(_sent ? 'Send again' : 'Reset Password',
+                          style: const TextStyle(fontSize: 18)),
+                ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text.rich(TextSpan(children: [
+                    TextSpan(
+                      text: 'Remembered it? ',
+                      style: TextStyle(color: Constants.blackColor),
                     ),
-                  ),
+                    TextSpan(
+                      text: 'Back to sign in',
+                      style: TextStyle(color: Constants.primaryColor),
+                    ),
+                  ])),
                 ),
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacement(
-                      context,
-                      PageTransition(
-                          child: const SignInScreen(),
-                          type: PageTransitionType.bottomToTop));
-                },
-                child: Center(
-                  child: Text.rich(
-                    TextSpan(children: [
-                      TextSpan(
-                        text: 'Have an Account? ',
-                        style: TextStyle(
-                          color: Constants.blackColor,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'Login',
-                        style: TextStyle(
-                          color: Constants.primaryColor,
-                        ),
-                      ),
-                    ]),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

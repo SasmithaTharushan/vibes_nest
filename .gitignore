@@ -21,8 +21,13 @@
 .env
 *.env
 dart_defines.json
-**/google-services.json
-**/GoogleService-Info.plist
+# Note: google-services.json and lib/firebase_options.dart ARE committed.
+# They hold public Firebase client identifiers; data is protected by
+# firestore.rules, not by hiding these files.
+
+# Firebase CLI local state
+.firebase/
+firebase-debug.log
 
 # OS / misc
 .DS_Store

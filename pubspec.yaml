@@ -22,11 +22,16 @@ dependencies:
   fl_chart: ^0.70.2
 
   material_ui: 1.11.0
+  firebase_core: ^5.1.0
+  firebase_auth: ^7.0.1
+  cloud_firestore: ^7.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  fake_cloud_firestore: ^4.5.0
+  firebase_auth_mocks: ^0.16.0
 flutter:
   uses-material-design: true
 

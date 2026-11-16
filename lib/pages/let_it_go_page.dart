@@ -1,18 +1,20 @@
-import 'dart:math';
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/wellness_models.dart';
+import '../services/app_services.dart';
 
 class LetItGoPage extends StatefulWidget {
   const LetItGoPage({super.key});
 
   @override
-  _LetItGoPageState createState() => _LetItGoPageState();
+  State<LetItGoPage> createState() => _LetItGoPageState();
 }
 
 class _LetItGoPageState extends State<LetItGoPage> {
   final TextEditingController _journalController = TextEditingController();
-  List<String> _entries = [];
-  final List<Color> _noteColors = [
+
+  static final List<Color> _noteColors = [
     Colors.yellow[200]!,
     Colors.pink[200]!,
     Colors.green[200]!,
@@ -22,156 +24,151 @@ class _LetItGoPageState extends State<LetItGoPage> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _loadJournalEntries();
+  void dispose() {
+    _journalController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadJournalEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _entries = prefs.getStringList('journal_entries') ?? [];
-    });
-  }
+  // Stable colour per note, so notes don't change colour on every rebuild.
+  Color _colorFor(JournalEntry e) =>
+      _noteColors[e.id.hashCode.abs() % _noteColors.length];
 
   Future<void> _saveEntry() async {
-    if (_journalController.text.isNotEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      _entries.insert(0, _journalController.text);
-      await prefs.setStringList('journal_entries', _entries);
-      _journalController.clear();
-      setState(() {});
-    }
+    final text = _journalController.text.trim();
+    if (text.isEmpty) return;
+    _journalController.clear();
+    FocusScope.of(context).unfocus();
+    await AppServices.repo(context).addJournal(text);
   }
 
   Future<void> _clearEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('journal_entries');
-    setState(() {
-      _entries.clear();
-    });
-  }
-
-  Future<void> _deleteEntry(int index) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _entries.removeAt(index);
-    });
-    await prefs.setStringList('journal_entries', _entries);
-  }
-
-  Color _getRandomNoteColor() {
-    final random = Random();
-    return _noteColors[random.nextInt(_noteColors.length)];
+    final repo = AppServices.repo(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Let go of all notes?'),
+        content: const Text('This deletes every note. It cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete all')),
+        ],
+      ),
+    );
+    if (ok == true) await repo.clearJournal();
   }
 
   @override
   Widget build(BuildContext context) {
+    final repo = AppServices.repo(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Let It Go'),
         backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Heading with emoji
-            const Text(
-              "Write down your thoughts and let go of your worries ✨💭",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            // Notebook-like Input Field
-            Row(
+        child: StreamBuilder<List<JournalEntry>>(
+          stream: repo.watchJournal(),
+          builder: (context, snapshot) {
+            final entries = snapshot.data ?? const <JournalEntry>[];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _journalController,
-                    maxLines: 1,
-                    style: const TextStyle(fontSize: 16),
-                    decoration: InputDecoration(
-                      hintText: "Write here...",
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
+                const Text(
+                  'Write down your thoughts and let go of your worries ✨💭',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _journalController,
+                        minLines: 1,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: 'Write here...',
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    FloatingActionButton(
+                      heroTag: 'save-note',
+                      onPressed: _saveEntry,
+                      backgroundColor: Colors.blueGrey,
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                FloatingActionButton(
-                  onPressed: _saveEntry,
-                  backgroundColor: Colors.blueGrey,
-                  child: const Icon(Icons.add, color: Colors.white),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('Your Sticky Notes:',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    if (entries.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: _clearEntries,
+                        icon: const Icon(Icons.delete_forever, color: Colors.red),
+                        label: const Text('Clear All',
+                            style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: !snapshot.hasData && !snapshot.hasError
+                      ? const Center(child: CircularProgressIndicator())
+                      : entries.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No thoughts saved. Write something! 😊',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.grey),
+                              ),
+                            )
+                          : GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                              ),
+                              itemCount: entries.length,
+                              itemBuilder: (context, index) =>
+                                  _buildStickyNote(entries[index]),
+                            ),
                 ),
               ],
-            ),
-
-            const SizedBox(height: 20),
-
-            if (_entries.isNotEmpty)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _clearEntries,
-                  icon: const Icon(Icons.delete_forever, color: Colors.red),
-                  label: const Text(
-                    "Clear All",
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              "Your Sticky Notes:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Sticky Notes Grid
-            Expanded(
-              child: _entries.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No thoughts saved. Write something! 😊",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    )
-                  : GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2, // Two sticky notes per row
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: _entries.length,
-                      itemBuilder: (context, index) {
-                        return _buildStickyNote(_entries[index], index);
-                      },
-                    ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildStickyNote(String text, int index) {
+  Widget _buildStickyNote(JournalEntry entry) {
+    final repo = AppServices.repo(context);
     return Dismissible(
-      key: Key(text),
-      onDismissed: (direction) {
-        _deleteEntry(index);
-      },
+      key: ValueKey(entry.id),
+      onDismissed: (_) => repo.deleteJournal(entry.id),
       background: Container(
         color: const Color.fromARGB(255, 75, 75, 75),
         alignment: Alignment.centerRight,
@@ -180,39 +177,40 @@ class _LetItGoPageState extends State<LetItGoPage> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: _getRandomNoteColor(),
+          color: _colorFor(entry),
           borderRadius: BorderRadius.circular(10),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 6,
               spreadRadius: 1,
-              offset: const Offset(2, 4),
+              offset: Offset(2, 4),
             ),
           ],
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: SingleChildScrollView(
-                child: Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: Text(entry.text,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w500)),
               ),
             ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: IconButton(
-                icon: const Icon(Icons.delete,
-                    color: Color.fromARGB(255, 155, 33, 24)),
-                onPressed: () => _deleteEntry(index),
-              ),
+            Row(
+              children: [
+                Text(DateFormat('d MMM').format(entry.createdAt),
+                    style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Delete note',
+                  icon: const Icon(Icons.delete,
+                      color: Color.fromARGB(255, 155, 33, 24)),
+                  onPressed: () => repo.deleteJournal(entry.id),
+                ),
+              ],
             ),
           ],
         ),

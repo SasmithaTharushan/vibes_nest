@@ -14,7 +14,7 @@ import 'profile_page.dart';
 import 'breath_control_page.dart';
 import 'stay_calm_page.dart';
 import 'crisis_help_page.dart';
-import '../services/local_profile.dart';
+import '../services/app_services.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,15 +26,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _selectedCategory = 'Recommended';
   int _selectedIndex = 0;
-  String _name = '';
 
-  @override
-  void initState() {
-    super.initState();
-    LocalProfile.name().then((n) {
-      if (mounted) setState(() => _name = n);
-    });
-  }
+  String get _name => AppServices.auth(context).displayName;
 
   String get _greeting {
     final hour = DateTime.now().hour;

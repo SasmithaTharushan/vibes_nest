@@ -12,21 +12,40 @@ Vibes Nest is a Flutter app that brings everyday mental wellness tools into one 
 |---|---|
 | 🫁 **Breath Control** | Animated 4-7-8, Box and Calm breathing with a live countdown and cycle counter |
 | 🧘 **Stay Calm** | Step-by-step 5-4-3-2-1 grounding exercise for anxious moments |
+| 🔐 **Accounts** | Sign up, sign in, password reset, email verification, delete account |
 | 💬 **Talk to Nest** | Supportive companion chat that suggests the right tool and detects crisis language |
 | 🆘 **Get help now** | One-tap calls to Sri Lankan crisis lines, plus worldwide helplines |
 | 🎧 **Meditation & Music** | Curated guided meditations and mood-based playlists |
-| 📝 **Let It Go** | Private journal to write down and release worries |
-| 😴 **Sleep tracker** | Log bed and wake times and get sleep-quality tips |
-| 📈 **Mood tracker** | Chart how you feel over time |
+| 📝 **Let It Go** | Private journal, synced to your account |
+| 😴 **Sleep tracker** | Log nights (handles past-midnight bedtimes), star ratings, averages, tomorrow's tasks |
+| 📈 **Mood tracker** | Dated check-ins and a 30-day chart |
 | 👥 **Community** | Share posts by topic, send "hugs", join the WhatsApp group |
 | 📅 **Appointments** | Pick a counsellor, date and time, online or in person |
 
 ## Tech stack
 
 - **Flutter 3.50 / Dart 3.14**, Material 3 (`material_ui`)
-- `shared_preferences` for on-device storage
+- **Firebase Authentication** for email/password accounts, password reset and email verification
+- **Cloud Firestore** for per-user mood, sleep, journal and task data, with offline caching
+- Firestore **security rules** so each user can only read and write their own data (`firestore.rules`)
 - `fl_chart` for mood charts, `youtube_player_flutter` for media
-- Widget tests with `flutter_test`
+- Unit and widget tests with `fake_cloud_firestore` and `firebase_auth_mocks`
+
+### Architecture
+
+```
+lib/
+  main.dart                  App start + AuthGate (Welcome ↔ Home)
+  services/
+    auth_service.dart        Firebase Auth wrapper, friendly error messages
+    app_services.dart        Gives every screen access to services
+    local_migration.dart     One-time move of old on-device data to the cloud
+  data/
+    wellness_repository.dart Firestore reads/writes under users/{uid}/...
+  models/
+    wellness_models.dart     MoodEntry, SleepEntry, JournalEntry, TaskItem
+  pages/                     UI screens
+```
 
 ## Getting started
 
@@ -34,10 +53,30 @@ Vibes Nest is a Flutter app that brings everyday mental wellness tools into one 
 git clone https://github.com/SasmithaTharushan/vibes_nest.git
 cd vibes_nest
 flutter pub get
+```
+
+### Connect your own Firebase project (one time)
+
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. **Authentication → Get started → Email/Password → Enable.**
+3. **Firestore Database → Create database** (production mode).
+4. Install the tools and connect the app:
+
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   dart pub global activate flutterfire_cli
+   flutterfire configure --project=YOUR_PROJECT_ID --platforms=android
+   firebase deploy --only firestore:rules --project YOUR_PROJECT_ID
+   ```
+
+Then run the app:
+
+```bash
 flutter run
 ```
 
-Run the tests:
+Run the tests (no Firebase project needed):
 
 ```bash
 flutter test
@@ -46,7 +85,7 @@ flutter test
 ## Roadmap
 
 - [x] **Phase 1:** Cleanup, security fixes, no more dead-end screens, crisis support
-- [ ] **Phase 2:** Firebase Authentication and cloud sync (Firestore)
+- [x] **Phase 2:** Firebase Authentication and cloud sync (Firestore)
 - [ ] **Phase 3:** AI companion powered by Gemini (via Firebase AI Logic, so no keys in the app)
 - [ ] **Phase 4:** Real-time community, real appointment booking, "grow a tree" rewards
 - [ ] **Phase 5:** Polished UI, CI build, signed release APK

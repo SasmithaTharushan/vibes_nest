@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Needed for YouTube videos, thumbnails and web links in release builds. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Vibes Nest"
         android:name="${applicationName}"
@@ -40,6 +42,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher: open web links (WhatsApp, library, helplines site). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <!-- url_launcher: open the phone dialer for crisis helplines. -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
         </intent>
     </queries>
 </manifest>

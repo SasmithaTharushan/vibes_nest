@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../services/local_profile.dart';
+import '../services/app_services.dart';
 
 /// Community page: a link to the group chat plus a "share your thoughts" wall.
 ///
@@ -147,9 +147,9 @@ class _CommunityPageState extends State<CommunityPage> {
       ),
     );
     textController.dispose();
-    if (result == null) return;
+    if (result == null || !mounted) return;
 
-    final author = await LocalProfile.name();
+    final author = AppServices.auth(context).displayName;
     setState(() {
       _posts.insert(
         0,

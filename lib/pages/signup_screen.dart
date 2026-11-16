@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:vibes_nest/pages/home.dart';
 import 'package:vibes_nest/pages/signin_screen.dart';
-import 'package:vibes_nest/services/local_profile.dart';
+import 'package:vibes_nest/services/app_services.dart';
+import 'package:vibes_nest/services/auth_service.dart';
 import 'package:vibes_nest/theme/theme.dart';
 import 'package:vibes_nest/widgets/custom_scaffold.dart';
 
@@ -16,12 +16,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formSignupKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool agreePersonalData = true;
+  bool _busy = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -34,17 +37,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
     if (!_formSignupKey.currentState!.validate()) return;
-    // TODO(phase-2): replace with FirebaseAuth.createUserWithEmailAndPassword.
-    await LocalProfile.signIn(
-      email: _emailController.text,
-      name: _nameController.text,
-    );
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
-      (route) => false,
-    );
+    setState(() => _busy = true);
+    try {
+      await AppServices.auth(context).signUp(
+        name: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Welcome! We sent a verification link to your email.')));
+      // The AuthGate at the bottom of the stack now shows Home.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -151,6 +163,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       // password
                       TextFormField(
+                        controller: _passwordController,
                         obscureText: true,
                         obscuringCharacter: '*',
                         validator: (value) {
@@ -219,8 +232,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _signUp,
-                          child: const Text('Sign up'),
+                          onPressed: _busy ? null : _signUp,
+                          child: _busy
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))
+                              : const Text('Sign up'),
                         ),
                       ),
                       const SizedBox(

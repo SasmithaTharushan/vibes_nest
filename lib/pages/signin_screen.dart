@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:vibes_nest/pages/forgot_password.dart';
 import 'package:vibes_nest/pages/signup_screen.dart';
-import 'package:vibes_nest/services/local_profile.dart';
+import 'package:vibes_nest/services/app_services.dart';
+import 'package:vibes_nest/services/auth_service.dart';
 import 'package:vibes_nest/widgets/custom_scaffold.dart';
-import 'package:vibes_nest/pages/home.dart';
 
 import '../theme/theme.dart';
 
@@ -24,23 +24,35 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final _formSignInKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _busy = false;
+  bool _showPassword = false;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _signIn() async {
     if (!_formSignInKey.currentState!.validate()) return;
-    // TODO(phase-2): replace with FirebaseAuth.signInWithEmailAndPassword.
-    await LocalProfile.signIn(email: _emailController.text);
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
-      (route) => false,
-    );
+    setState(() => _busy = true);
+    try {
+      await AppServices.auth(context).signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      // The AuthGate at the bottom of the stack now shows Home.
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -110,8 +122,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         height: 25.0,
                       ),
                       TextFormField(
-                        obscureText: true,
+                        controller: _passwordController,
+                        obscureText: !_showPassword,
                         obscuringCharacter: '*',
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _busy ? null : _signIn(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter Password';
@@ -119,6 +134,16 @@ class _SignInScreenState extends State<SignInScreen> {
                           return null;
                         },
                         decoration: InputDecoration(
+                          suffixIcon: IconButton(
+                            tooltip: _showPassword
+                                ? 'Hide password'
+                                : 'Show password',
+                            icon: Icon(_showPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(
+                                () => _showPassword = !_showPassword),
+                          ),
                           label: const Text('Password'),
                           hintText: 'Enter Password',
                           hintStyle: const TextStyle(
@@ -164,8 +189,14 @@ class _SignInScreenState extends State<SignInScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _signIn,
-                          child: const Text('Sign in'),
+                          onPressed: _busy ? null : _signIn,
+                          child: _busy
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))
+                              : const Text('Sign in'),
                         ),
                       ),
                       const SizedBox(

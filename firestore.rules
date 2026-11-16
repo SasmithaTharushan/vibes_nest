@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Vibes Nest security rules.
+// Each person can read and write ONLY their own data under users/{uid}.
+// Everything else is denied by default.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validTime(t) {
+      return t is timestamp;
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100;
+
+      match /moods/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['mood', 'createdAt'])
+          && request.resource.data.mood is int
+          && request.resource.data.mood >= 0 && request.resource.data.mood <= 2
+          && validTime(request.resource.data.createdAt);
+      }
+
+      match /sleep/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['bedTime', 'wakeTime', 'hours', 'createdAt'])
+          && validTime(request.resource.data.bedTime)
+          && validTime(request.resource.data.wakeTime)
+          && request.resource.data.wakeTime > request.resource.data.bedTime
+          && request.resource.data.hours is number
+          && request.resource.data.hours <= 24;
+      }
+
+      match /journal/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['text', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 5000
+          && validTime(request.resource.data.createdAt);
+      }
+
+      match /tasks/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['text', 'done', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 300
+          && request.resource.data.done is bool;
+        // Only the done flag can change after creation.
+        allow update: if isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done'])
+          && request.resource.data.done is bool;
+      }
+    }
+  }
+}

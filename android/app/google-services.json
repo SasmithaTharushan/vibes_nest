@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "571629445698",
+    "project_id": "vibes-nest",
+    "storage_bucket": "vibes-nest.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:571629445698:android:1252d62c31287f49ff03db",
+        "android_client_info": {
+          "package_name": "com.sasmitha.vibesnest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXSmLQyTV7ya950qEnxM1kGz_ASaYaWlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:vibes_nest/constants.dart';
 import 'package:vibes_nest/pages/crisis_help_page.dart';
 import 'package:vibes_nest/pages/faq_page.dart';
 import 'package:vibes_nest/pages/progress_tracker.dart';
-import 'package:vibes_nest/pages/welcome_screen.dart';
-import 'package:vibes_nest/services/local_profile.dart';
+import 'package:vibes_nest/services/app_services.dart';
+import 'package:vibes_nest/services/auth_service.dart';
 import 'package:vibes_nest/widgets/profile_widget.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -20,34 +20,54 @@ class _ProfilePageState extends State<ProfilePage> {
       'I use Vibes Nest to look after my mental wellbeing. Check it out: '
       'https://github.com/SasmithaTharushan/vibes_nest';
 
-  String _name = '';
-  String _email = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  Future<void> _loadProfile() async {
-    final name = await LocalProfile.name();
-    final email = await LocalProfile.email();
-    if (mounted) {
-      setState(() {
-        _name = name;
-        _email = email;
-      });
-    }
-  }
+  AuthService get _auth => AppServices.auth(context);
 
   void _open(Widget page) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => page));
 
+  void _toast(String message) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(message)));
+
   Future<void> _share() async {
     await Clipboard.setData(const ClipboardData(text: _shareText));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Link copied! Paste it to share Vibes Nest with a friend.')));
+    if (mounted) _toast('Link copied! Paste it to share Vibes Nest with a friend.');
+  }
+
+  Future<void> _editName() async {
+    final controller = TextEditingController(text: _auth.displayName);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Your name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Full name'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.isEmpty || !mounted) return;
+    try {
+      await _auth.updateName(name);
+      if (mounted) setState(() {});
+    } on AuthFailure catch (e) {
+      if (mounted) _toast(e.message);
+    }
+  }
+
+  Future<void> _resendVerification() async {
+    await _auth.currentUser?.sendEmailVerification();
+    if (mounted) _toast('Verification email sent. Check your inbox.');
   }
 
   Future<void> _logOut() async {
@@ -55,7 +75,7 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log out?'),
-        content: const Text('You can sign back in at any time.'),
+        content: const Text('Your data stays safe in your account.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -66,18 +86,66 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
-    if (confirmed != true) return;
-    await LocalProfile.signOut();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-      (route) => false,
+    if (confirmed != true || !mounted) return;
+    // Pop first so the AuthGate (bottom of the stack) shows Welcome.
+    final auth = _auth;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    await auth.signOut();
+  }
+
+  Future<void> _deleteAccount() async {
+    final passwordController = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'This permanently deletes your account and all your moods, '
+                'sleep logs, journal notes and tasks. This cannot be undone.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                  labelText: 'Enter your password to confirm'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, passwordController.text),
+            child: const Text('Delete forever'),
+          ),
+        ],
+      ),
     );
+    passwordController.dispose();
+    if (password == null || password.isEmpty || !mounted) return;
+    final auth = _auth;
+    final navigator = Navigator.of(context);
+    try {
+      await auth.deleteAccount(password: password);
+      navigator.popUntil((route) => route.isFirst);
+    } on AuthFailure catch (e) {
+      if (mounted) _toast(e.message);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final initial = _name.isNotEmpty ? _name[0].toUpperCase() : '?';
+    final user = _auth.currentUser;
+    final name = _auth.displayName;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final verified = user?.emailVerified ?? false;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
@@ -102,18 +170,40 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            _name,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Constants.blackColor, fontSize: 22),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(name,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Constants.blackColor, fontSize: 22)),
+              ),
+              IconButton(
+                tooltip: 'Edit name',
+                icon: const Icon(Icons.edit, size: 18),
+                onPressed: _editName,
+              ),
+            ],
           ),
-          Text(
-            _email,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Constants.blackColor.withValues(alpha: .4)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(user?.email ?? '',
+                  style: TextStyle(
+                      color: Constants.blackColor.withValues(alpha: .5))),
+              const SizedBox(width: 6),
+              Icon(verified ? Icons.verified : Icons.error_outline,
+                  size: 16, color: verified ? Colors.green : Colors.orange),
+            ],
           ),
-          const SizedBox(height: 24),
+          if (!verified)
+            Center(
+              child: TextButton(
+                onPressed: _resendVerification,
+                child: const Text('Email not verified · Resend link'),
+              ),
+            ),
+          const SizedBox(height: 16),
           ProfileWidget(
             icon: Icons.bar_chart,
             title: 'My Progress',
@@ -139,6 +229,13 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icons.logout,
             title: 'Log Out',
             onTap: _logOut,
+          ),
+          const Divider(height: 32),
+          ProfileWidget(
+            icon: Icons.delete_forever,
+            title: 'Delete account',
+            color: Colors.red,
+            onTap: _deleteAccount,
           ),
         ],
       ),
