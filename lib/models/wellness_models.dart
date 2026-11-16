@@ -143,3 +143,40 @@ class TaskItem {
   }
   return (bed: bed, wake: wake);
 }
+
+/// A message in the "Talk to Nest" conversation.
+class ChatMessage {
+  final String id;
+  final bool fromUser;
+  final String text;
+
+  /// Name of a [CompanionTool] to offer as a button under this reply.
+  final String? tool;
+  final DateTime createdAt;
+
+  const ChatMessage({
+    required this.id,
+    required this.fromUser,
+    required this.text,
+    required this.createdAt,
+    this.tool,
+  });
+
+  factory ChatMessage.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data() ?? const {};
+    return ChatMessage(
+      id: doc.id,
+      fromUser: d['role'] == 'user',
+      text: d['text'] as String? ?? '',
+      tool: d['tool'] as String?,
+      createdAt: _readDate(d['createdAt']),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'role': fromUser ? 'user' : 'model',
+        'text': text,
+        if (tool != null) 'tool': tool,
+        'createdAt': Timestamp.fromDate(createdAt),
+      };
+}

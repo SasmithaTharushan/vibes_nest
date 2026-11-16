@@ -2,19 +2,31 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/wellness_repository.dart';
 import 'auth_service.dart';
+import 'companion_ai.dart';
 
 /// Makes the app's services available to every screen.
 ///
-/// Screens call `AppServices.auth(context)` or `AppServices.repo(context)`.
-/// Tests wrap widgets in [AppServices] with fake Firebase instances.
+/// Screens call `AppServices.auth(context)`, `AppServices.repo(context)` or
+/// `AppServices.companion(context)`. Tests wrap widgets in [AppServices] with
+/// fake Firebase instances and a fake AI.
 class AppServices extends InheritedWidget {
-  const AppServices({super.key, required this.authService, required super.child});
+  const AppServices({
+    super.key,
+    required this.authService,
+    required this.companionAi,
+    required super.child,
+  });
 
   final AuthService authService;
+  final CompanionAi companionAi;
 
-  static AuthService auth(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<AppServices>()!
-      .authService;
+  static AppServices _of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppServices>()!;
+
+  static AuthService auth(BuildContext context) => _of(context).authService;
+
+  static CompanionAi companion(BuildContext context) =>
+      _of(context).companionAi;
 
   /// The signed-in user's data. Only call this on screens behind the login.
   static WellnessRepository repo(BuildContext context) {
@@ -24,5 +36,6 @@ class AppServices extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppServices oldWidget) =>
-      authService != oldWidget.authService;
+      authService != oldWidget.authService ||
+      companionAi != oldWidget.companionAi;
 }

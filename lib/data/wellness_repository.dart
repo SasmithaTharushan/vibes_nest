@@ -23,6 +23,31 @@ class WellnessRepository {
       _user.collection('journal');
   CollectionReference<Map<String, dynamic>> get _tasks =>
       _user.collection('tasks');
+  CollectionReference<Map<String, dynamic>> get _chat =>
+      _user.collection('chat');
+
+  // ---- Talk to Nest ----
+  Stream<List<ChatMessage>> watchChat({int limit = 100}) => _chat
+      .orderBy('createdAt', descending: true)
+      .limit(limit)
+      .snapshots()
+      .map((s) => s.docs.map(ChatMessage.fromDoc).toList().reversed.toList());
+
+  Future<void> addChatMessage({
+    required bool fromUser,
+    required String text,
+    String? tool,
+    DateTime? at,
+  }) =>
+      _chat.add(ChatMessage(
+        id: '',
+        fromUser: fromUser,
+        text: text,
+        tool: tool,
+        createdAt: at ?? DateTime.now(),
+      ).toMap());
+
+  Future<void> clearChat() => _deleteAll(_chat);
 
   // ---- Mood ----
   Stream<List<MoodEntry>> watchMoods({int limit = 30}) => _moods
@@ -86,7 +111,7 @@ class WellnessRepository {
 
   /// Deletes every document this user owns. Used before deleting the account.
   Future<void> deleteAllData() async {
-    for (final c in [_moods, _sleep, _journal, _tasks]) {
+    for (final c in [_moods, _sleep, _journal, _tasks, _chat]) {
       await _deleteAll(c);
     }
     await _user.delete();

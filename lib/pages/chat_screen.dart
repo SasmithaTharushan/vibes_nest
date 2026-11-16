@@ -1,16 +1,21 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
+import '../models/wellness_models.dart';
+import '../services/app_services.dart';
+import '../services/companion_ai.dart';
+import '../services/crisis_detector.dart';
 import 'breath_control_page.dart';
 import 'crisis_help_page.dart';
 import 'let_it_go_page.dart';
 import 'sleep_traking_page.dart';
 import 'stay_calm_page.dart';
 
-/// A supportive companion chat.
+/// "Talk to Nest": a supportive AI companion.
 ///
-/// For now it replies with caring, rule-based messages and points people to
-/// the right tool in the app. Phase 3 will replace [_replyTo] with a real AI
-/// model (Gemini through Firebase), keeping the crisis check in front of it.
+/// Every message is checked on the device for crisis language first. Crisis
+/// messages get a fixed reply with helplines and are never sent to the AI.
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -18,109 +23,18 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _Message {
-  final bool fromUser;
-  final String text;
-  final _Action? action;
-  const _Message(this.fromUser, this.text, {this.action});
-}
-
-class _Action {
-  final String label;
-  final WidgetBuilder builder;
-  const _Action(this.label, this.builder);
-}
-
 class _ChatScreenState extends State<ChatScreen> {
+  static const _greeting =
+      "Hi, I'm Nest. I'm here to listen. How are you feeling right now?";
+  static const _replyTimeout = Duration(seconds: 30);
+
   final _controller = TextEditingController();
   final _scroll = ScrollController();
-  final List<_Message> _messages = [
-    const _Message(false,
-        "Hi, I'm here for you. How are you feeling right now? You can tell me anything."),
-  ];
 
-  static const _crisisWords = [
-    'suicide', 'suicidal', 'kill myself', 'end my life', 'end it all',
-    'self harm', 'self-harm', 'hurt myself', 'cut myself', 'want to die',
-    "don't want to live", 'no reason to live',
-  ];
-
-  bool _containsAny(String text, List<String> words) =>
-      words.any((w) => text.contains(w));
-
-  _Message _replyTo(String input) {
-    final text = input.toLowerCase();
-
-    if (_containsAny(text, _crisisWords)) {
-      return _Message(
-        false,
-        "I'm really sorry you're feeling this way, and I'm glad you told me. "
-        "You deserve support right now from a real person. Please call the "
-        "1926 National Mental Health Helpline (free, 24/7), or tap below for "
-        "more options. If you are in immediate danger, call 119.",
-        action: _Action('Get help now', (_) => const CrisisHelpPage()),
-      );
-    }
-    if (_containsAny(text, ['anxious', 'anxiety', 'panic', 'scared', 'nervous', 'overwhelm'])) {
-      return _Message(
-        false,
-        "That sounds really hard. When anxiety rises, grounding yourself in "
-        "the present can help. Want to try the 5-4-3-2-1 exercise together?",
-        action: _Action('Start grounding', (_) => const StayCalmPage()),
-      );
-    }
-    if (_containsAny(text, ['stress', 'stressed', 'tense', 'angry', 'frustrat'])) {
-      return _Message(
-        false,
-        "Stress builds up in the body. A few minutes of slow breathing can "
-        "calm your nervous system. Shall we breathe together?",
-        action: _Action('Breathe with me', (_) => const BreathControlPage()),
-      );
-    }
-    if (_containsAny(text, ['sleep', 'insomnia', 'tired', 'exhausted', "can't rest"])) {
-      return _Message(
-        false,
-        "Rest matters so much. Tracking your sleep can help you spot patterns, "
-        "and 4-7-8 breathing before bed helps many people fall asleep.",
-        action: _Action('Open sleep tracker', (_) => const SleepTrackingPage()),
-      );
-    }
-    if (_containsAny(text, ['sad', 'down', 'lonely', 'alone', 'cry', 'depress', 'hopeless', 'worried', 'worry'])) {
-      return _Message(
-        false,
-        "I hear you, and your feelings are valid. Sometimes writing things "
-        "down helps lift the weight a little. Would you like to let it out?",
-        action: _Action('Write it down', (_) => const LetItGoPage()),
-      );
-    }
-    if (_containsAny(text, ['happy', 'good', 'great', 'better', 'calm', 'fine', 'okay'])) {
-      return const _Message(false,
-          "I'm so glad to hear that! What's one thing that made today a little better?");
-    }
-    if (_containsAny(text, ['thank'])) {
-      return const _Message(false,
-          "You're welcome. I'm here whenever you need to talk. Take care of yourself.");
-    }
-    return const _Message(false,
-        "Thank you for sharing that with me. Tell me more. What's on your mind, "
-        "and how is it making you feel?");
-  }
-
-  void _send() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(_Message(true, text));
-      _messages.add(_replyTo(text));
-    });
-    _controller.clear();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(_scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-      }
-    });
-  }
+  List<ChatMessage> _messages = const [];
+  bool _sending = false;
+  String? _streamingText;
+  bool _offline = false;
 
   @override
   void dispose() {
@@ -129,8 +43,110 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  Widget _pageFor(CompanionTool tool) {
+    switch (tool) {
+      case CompanionTool.crisis:
+        return const CrisisHelpPage();
+      case CompanionTool.grounding:
+        return const StayCalmPage();
+      case CompanionTool.breathing:
+        return const BreathControlPage();
+      case CompanionTool.sleep:
+        return const SleepTrackingPage();
+      case CompanionTool.journal:
+        return const LetItGoPage();
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(_scroll.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      }
+    });
+  }
+
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _sending) return;
+
+    final repo = AppServices.repo(context);
+    final ai = AppServices.companion(context);
+    final history = [
+      for (final m in _messages) ChatTurn(fromUser: m.fromUser, text: m.text),
+    ];
+
+    _controller.clear();
+    setState(() {
+      _sending = true;
+      _streamingText = '';
+    });
+    _scrollToBottom();
+
+    await repo.addChatMessage(fromUser: true, text: text);
+
+    final tool = CrisisDetector.suggestTool(text);
+    String reply;
+    var offline = false;
+
+    if (CrisisDetector.isCrisis(text)) {
+      // Never send crisis messages to the AI: show helplines immediately.
+      reply = CrisisDetector.crisisReply;
+    } else {
+      try {
+        final buffer = StringBuffer();
+        // The whole reply must arrive within the time limit, so a stuck
+        // network call can never freeze the chat.
+        await ai.reply(history: history, message: text).forEach((piece) {
+          buffer.write(piece);
+          if (!mounted) return;
+          setState(() => _streamingText = buffer.toString());
+          _scrollToBottom();
+        }).timeout(_replyTimeout);
+        if (!mounted) return;
+        reply = buffer.toString().trim();
+        if (reply.isEmpty) throw StateError('Empty reply');
+      } catch (_) {
+        // No internet, AI quota reached, or the reply was blocked.
+        reply = OfflineCompanion.replyFor(text);
+        offline = true;
+      }
+    }
+
+    await repo.addChatMessage(fromUser: false, text: reply, tool: tool?.name);
+    if (!mounted) return;
+    setState(() {
+      _sending = false;
+      _streamingText = null;
+      _offline = offline;
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _clearChat() async {
+    final repo = AppServices.repo(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear this conversation?'),
+        content: const Text('All messages with Nest will be deleted.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Clear')),
+        ],
+      ),
+    );
+    if (ok == true) await repo.clearChat();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final repo = AppServices.repo(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Talk to Nest'),
@@ -141,18 +157,55 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const CrisisHelpPage())),
           ),
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'clear') _clearChat();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'clear', child: Text('Clear chat')),
+            ],
+          ),
         ],
       ),
       body: Column(
         children: [
+          const _AiNotice(),
           Expanded(
-            child: ListView.builder(
-              controller: _scroll,
-              padding: const EdgeInsets.all(12),
-              itemCount: _messages.length,
-              itemBuilder: (context, i) => _buildBubble(_messages[i]),
+            child: StreamBuilder<List<ChatMessage>>(
+              stream: repo.watchChat(),
+              builder: (context, snapshot) {
+                _messages = snapshot.data ?? _messages;
+                final items = <Widget>[
+                  _Bubble(fromUser: false, text: _greeting),
+                  for (final m in _messages)
+                    _Bubble(
+                      fromUser: m.fromUser,
+                      text: m.text,
+                      tool: CompanionTool.fromName(m.tool),
+                      onTool: (t) => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => _pageFor(t))),
+                    ),
+                  if (_sending)
+                    (_streamingText ?? '').isEmpty
+                        ? const _TypingBubble()
+                        : _Bubble(fromUser: false, text: _streamingText!),
+                ];
+                return ListView(
+                  controller: _scroll,
+                  padding: const EdgeInsets.all(12),
+                  children: items,
+                );
+              },
             ),
           ),
+          if (_offline)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                'Nest is in offline mode. Replies are simpler until you reconnect.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ),
           SafeArea(
             top: false,
             child: Padding(
@@ -162,10 +215,15 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      minLines: 1,
+                      maxLines: 4,
+                      maxLength: 2000,
+                      textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
                         hintText: 'Type how you feel...',
+                        counterText: '',
                         filled: true,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -178,7 +236,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    onPressed: _send,
+                    tooltip: 'Send',
+                    onPressed: _sending ? null : _send,
                     icon: const Icon(Icons.send),
                   ),
                 ],
@@ -189,36 +248,98 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+}
 
-  Widget _buildBubble(_Message m) {
+class _AiNotice extends StatelessWidget {
+  const _AiNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'Nest is an AI companion, not a therapist. In an emergency, tap SOS.',
+        style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSecondaryContainer),
+      ),
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  const _Bubble({
+    required this.fromUser,
+    required this.text,
+    this.tool,
+    this.onTool,
+  });
+
+  final bool fromUser;
+  final String text;
+  final CompanionTool? tool;
+  final ValueChanged<CompanionTool>? onTool;
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Align(
-      alignment: m.fromUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.8),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: m.fromUser ? scheme.primary : scheme.surfaceContainerHighest,
+          color: fromUser ? scheme.primary : scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(m.text,
+            SelectableText(text,
                 style: TextStyle(
-                    color: m.fromUser ? scheme.onPrimary : scheme.onSurface,
+                    color: fromUser ? scheme.onPrimary : scheme.onSurface,
                     height: 1.35)),
-            if (m.action != null) ...[
+            if (tool != null && onTool != null) ...[
               const SizedBox(height: 8),
               FilledButton.tonal(
-                onPressed: () => Navigator.push(
-                    context, MaterialPageRoute(builder: m.action!.builder)),
-                child: Text(m.action!.label),
+                style: tool == CompanionTool.crisis
+                    ? FilledButton.styleFrom(
+                        backgroundColor: Colors.red.shade100,
+                        foregroundColor: Colors.red.shade900)
+                    : null,
+                onPressed: () => onTool!(tool!),
+                child: Text(tool!.label),
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TypingBubble extends StatelessWidget {
+  const _TypingBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const SizedBox(
+          width: 32,
+          height: 12,
+          child: LinearProgressIndicator(),
         ),
       ),
     );

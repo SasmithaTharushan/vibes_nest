@@ -185,6 +185,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  firebase_ai:
+    dependency: "direct main"
+    description:
+      name: firebase_ai
+      sha256: "39e33cd488b620460f7d56b25a9a53f690f20e8d2aafd568a82987c88973805b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
+  firebase_app_check:
+    dependency: transitive
+    description:
+      name: firebase_app_check
+      sha256: "224ace3355e6d1601b4f385cc115f56cca91b75c2b53438ed34d36d8d6d72742"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.2"
+  firebase_app_check_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_app_check_platform_interface
+      sha256: "238254f0b35a0ddb85e2ee1a36ca4cb51be48bb90b05b27383fb22f2b5a25885"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.2+4"
+  firebase_app_check_web:
+    dependency: transitive
+    description:
+      name: firebase_app_check_web
+      sha256: "384282ab3b0265ad738f8c78f45b2109e0c3e011f3858fed7614dfacc77135c4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.2+4"
   firebase_auth:
     dependency: "direct main"
     description:
@@ -770,6 +802,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  web_socket:
+    dependency: transitive
+    description:
+      name: web_socket
+      sha256: "34d64019aa8e36bf9842ac014bb5d2f5586ca73df5e4d9bf5c936975cae6982c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
+  web_socket_channel:
+    dependency: transitive
+    description:
+      name: web_socket_channel
+      sha256: d645757fb0f4773d602444000a8131ff5d48c9e47adfe9772652dd1a4f2d45c8
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.3"
   xdg_directories:
     dependency: transitive
     description:

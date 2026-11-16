@@ -7,6 +7,7 @@ import 'package:vibes_nest/pages/home.dart';
 import 'package:vibes_nest/pages/welcome_screen.dart';
 import 'package:vibes_nest/services/app_services.dart';
 import 'package:vibes_nest/services/auth_service.dart';
+import 'package:vibes_nest/services/companion_ai.dart';
 import 'package:vibes_nest/services/local_migration.dart';
 
 Future<void> main() async {
@@ -14,6 +15,7 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(AppServices(
     authService: AuthService(FirebaseAuth.instance, FirebaseFirestore.instance),
+    companionAi: GeminiCompanionAi(),
     child: const VibesNestApp(),
   ));
 }

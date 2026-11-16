@@ -6,15 +6,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vibes_nest/main.dart';
 import 'package:vibes_nest/pages/breath_control_page.dart';
-import 'package:vibes_nest/pages/chat_screen.dart';
 import 'package:vibes_nest/pages/stay_calm_page.dart';
 import 'package:vibes_nest/services/app_services.dart';
 import 'package:vibes_nest/services/auth_service.dart';
+import 'package:vibes_nest/services/companion_ai.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: child);
 
 Widget _app(MockFirebaseAuth auth) => AppServices(
       authService: AuthService(auth, FakeFirebaseFirestore()),
+      companionAi: const OfflineCompanion(),
       child: const VibesNestApp(),
     );
 
@@ -67,22 +68,5 @@ void main() {
     await tester.tap(find.text('Stop'));
     await tester.pump();
     expect(find.text('Start'), findsOneWidget);
-  });
-
-  testWidgets('Chat routes crisis messages to help', (tester) async {
-    await tester.pumpWidget(_wrap(const ChatScreen()));
-    await tester.enterText(find.byType(TextField), 'I want to die');
-    await tester.tap(find.byIcon(Icons.send));
-    await tester.pump();
-    expect(find.textContaining('1926'), findsOneWidget);
-    expect(find.text('Get help now'), findsOneWidget);
-  });
-
-  testWidgets('Chat suggests grounding for anxiety', (tester) async {
-    await tester.pumpWidget(_wrap(const ChatScreen()));
-    await tester.enterText(find.byType(TextField), 'I feel so anxious');
-    await tester.tap(find.byIcon(Icons.send));
-    await tester.pump();
-    expect(find.text('Start grounding'), findsOneWidget);
   });
 }

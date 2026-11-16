@@ -63,6 +63,20 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done'])
           && request.resource.data.done is bool;
       }
+
+      // "Talk to Nest" conversation history.
+      match /chat/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['role', 'text', 'tool', 'createdAt'])
+          && request.resource.data.role in ['user', 'model']
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 8000
+          && (!('tool' in request.resource.data)
+              || request.resource.data.tool in ['crisis', 'grounding', 'breathing', 'sleep', 'journal'])
+          && validTime(request.resource.data.createdAt);
+      }
     }
   }
 }
