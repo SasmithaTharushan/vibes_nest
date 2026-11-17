@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
-import 'package:firstly/pages/signup_screen.dart';
-import 'package:firstly/pages/signin_screen.dart';
-import 'package:firstly/theme/theme.dart';
-import 'package:firstly/widgets/custom_scaffold.dart';
-import 'package:firstly/widgets/welcome_button.dart';
+import 'package:vibes_nest/pages/signup_screen.dart';
+import 'package:vibes_nest/pages/signin_screen.dart';
+import 'package:vibes_nest/theme/theme.dart';
+import 'package:vibes_nest/widgets/custom_scaffold.dart';
+import 'package:vibes_nest/widgets/welcome_button.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});

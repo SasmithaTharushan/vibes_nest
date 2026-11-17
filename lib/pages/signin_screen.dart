@@ -1,10 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:icons_plus/icons_plus.dart';
-import 'package:firstly/pages/signup_screen.dart';
-import 'package:firstly/widgets/custom_scaffold.dart';
-import 'package:firstly/pages/home.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:vibes_nest/pages/forgot_password.dart';
+import 'package:vibes_nest/pages/signup_screen.dart';
+import 'package:vibes_nest/services/app_services.dart';
+import 'package:vibes_nest/services/auth_service.dart';
+import 'package:vibes_nest/widgets/custom_scaffold.dart';
 
 import '../theme/theme.dart';
+
+/// Basic email format check shared by the auth screens.
+String? validateEmail(String? value) {
+  if (value == null || value.trim().isEmpty) return 'Please enter Email';
+  final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value.trim());
+  return ok ? null : 'Please enter a valid email';
+}
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -15,7 +23,38 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   final _formSignInKey = GlobalKey<FormState>();
-  bool rememberPassword = true;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _busy = false;
+  bool _showPassword = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signIn() async {
+    if (!_formSignInKey.currentState!.validate()) return;
+    setState(() => _busy = true);
+    try {
+      await AppServices.auth(context).signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      // The AuthGate at the bottom of the stack now shows Home.
+      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
@@ -56,12 +95,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         height: 40.0,
                       ),
                       TextFormField(
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter Email';
-                          }
-                          return null;
-                        },
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: validateEmail,
                         decoration: InputDecoration(
                           label: const Text('Email'),
                           hintText: 'Enter Email',
@@ -86,8 +122,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         height: 25.0,
                       ),
                       TextFormField(
-                        obscureText: true,
+                        controller: _passwordController,
+                        obscureText: !_showPassword,
                         obscuringCharacter: '*',
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _busy ? null : _signIn(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter Password';
@@ -95,6 +134,16 @@ class _SignInScreenState extends State<SignInScreen> {
                           return null;
                         },
                         decoration: InputDecoration(
+                          suffixIcon: IconButton(
+                            tooltip: _showPassword
+                                ? 'Hide password'
+                                : 'Show password',
+                            icon: Icon(_showPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(
+                                () => _showPassword = !_showPassword),
+                          ),
                           label: const Text('Password'),
                           hintText: 'Enter Password',
                           hintStyle: const TextStyle(
@@ -117,38 +166,22 @@ class _SignInScreenState extends State<SignInScreen> {
                       const SizedBox(
                         height: 25.0,
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: rememberPassword,
-                                onChanged: (bool? value) {
-                                  setState(() {
-                                    rememberPassword = value!;
-                                  });
-                                },
-                                activeColor: lightColorScheme.primary,
-                              ),
-                              const Text(
-                                'Remember me',
-                                style: TextStyle(
-                                  color: Colors.black45,
-                                ),
-                              ),
-                            ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ForgotPassword()),
                           ),
-                          GestureDetector(
-                            child: Text(
-                              'Forget password?',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: lightColorScheme.primary,
-                              ),
+                          child: Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: lightColorScheme.primary,
                             ),
                           ),
-                        ],
+                        ),
                       ),
                       const SizedBox(
                         height: 25.0,
@@ -156,70 +189,15 @@ class _SignInScreenState extends State<SignInScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            if (_formSignInKey.currentState!.validate() &&
-                                rememberPassword) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const HomePage()),
-                              );
-                            } else if (!rememberPassword) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Please agree to the processing of personal data'),
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text(
-                              'Sign in'), // Change the button text to 'Sign in' instead of 'Sign up'
+                          onPressed: _busy ? null : _signIn,
+                          child: _busy
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))
+                              : const Text('Sign in'),
                         ),
-                      ),
-                      const SizedBox(
-                        height: 25.0,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              thickness: 0.7,
-                              color: Colors.grey.withOpacity(0.5),
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 0,
-                              horizontal: 10,
-                            ),
-                            child: Text(
-                              'Sign up with',
-                              style: TextStyle(
-                                color: Colors.black45,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              thickness: 0.7,
-                              color: Colors.grey.withOpacity(0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 25.0,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Icon(Bootstrap.facebook), // Facebook logo
-                          Icon(Bootstrap.twitter), // Twitter (X) logo
-                          Icon(Bootstrap.google), // Google logo
-                          Icon(Bootstrap.apple), // Apple logo
-                        ],
                       ),
                       const SizedBox(
                         height: 25.0,

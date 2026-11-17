@@ -1,106 +1,133 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:convert';
+import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 
-class ProgressTrackerPage extends StatefulWidget {
+import '../models/wellness_models.dart';
+import '../services/app_services.dart';
+
+class ProgressTrackerPage extends StatelessWidget {
   const ProgressTrackerPage({super.key});
 
   @override
-  _ProgressTrackerPageState createState() => _ProgressTrackerPageState();
+  Widget build(BuildContext context) {
+    final repo = AppServices.repo(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mood Tracker'),
+        centerTitle: true,
+        backgroundColor: Colors.blueGrey,
+        foregroundColor: Colors.white,
+      ),
+      body: StreamBuilder<List<MoodEntry>>(
+        stream: repo.watchMoods(),
+        builder: (context, snapshot) {
+          final moods = snapshot.data ?? const <MoodEntry>[];
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text(
+                'How are you feeling right now?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  for (var i = 0; i < MoodEntry.labels.length; i++)
+                    IconButton(
+                      tooltip: const ['Low', 'Okay', 'Good'][i],
+                      icon: Text(MoodEntry.labels[i],
+                          style: const TextStyle(fontSize: 36)),
+                      onPressed: () async {
+                        await repo.addMood(i);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Mood saved')));
+                        }
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              if (snapshot.hasError)
+                const Text('Could not load your moods. Check your connection.',
+                    textAlign: TextAlign.center)
+              else if (!snapshot.hasData)
+                const Center(child: CircularProgressIndicator())
+              else if (moods.isEmpty)
+                const Text('No mood logs yet. Start tracking today!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey))
+              else ...[
+                Text('Last ${moods.length} check-ins',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+                SizedBox(height: 200, child: _MoodChart(moods: moods)),
+                const SizedBox(height: 24),
+                const Text('History',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                for (final m in moods.reversed.take(10))
+                  ListTile(
+                    dense: true,
+                    leading: Text(MoodEntry.labels[m.mood],
+                        style: const TextStyle(fontSize: 24)),
+                    title: Text(
+                        DateFormat('EEE d MMM, h:mm a').format(m.createdAt)),
+                  ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
-class _ProgressTrackerPageState extends State<ProgressTrackerPage> {
-  List<int> _moodData = [];
-  List<String> _moodLabels = ['😞', '😐', '😊'];
+class _MoodChart extends StatelessWidget {
+  const _MoodChart({required this.moods});
 
-  @override
-  void initState() {
-    super.initState();
-    _loadMoodData();
-  }
-
-  Future<void> _loadMoodData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _moodData = (prefs
-              .getStringList('mood_data')
-              ?.map((e) => int.parse(e))
-              .toList() ??
-          []);
-    });
-  }
-
-  Future<void> _saveMood(int mood) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _moodData.add(mood);
-    });
-    await prefs.setStringList(
-        'mood_data', _moodData.map((e) => e.toString()).toList());
-  }
+  final List<MoodEntry> moods;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Progress Tracker"),
-        centerTitle: true,
-        backgroundColor: Colors.blueGrey,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              "How was your day?",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return LineChart(
+      LineChartData(
+        minY: 0,
+        maxY: 2,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              reservedSize: 36,
+              getTitlesWidget: (value, meta) => Text(
+                  MoodEntry.labels[value.round().clamp(0, 2)],
+                  style: const TextStyle(fontSize: 18)),
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(3, (index) {
-                return IconButton(
-                  icon: Text(
-                    _moodLabels[index],
-                    style: const TextStyle(fontSize: 30),
-                  ),
-                  onPressed: () => _saveMood(index),
-                );
-              }),
-            ),
-            const SizedBox(height: 20),
-            _moodData.isEmpty
-                ? const Center(
-                    child: Text(
-                      "No mood logs yet. Start tracking today!",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : SizedBox(
-                    height: 200,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: FlGridData(show: false),
-                        titlesData: FlTitlesData(show: false),
-                        borderData: FlBorderData(show: false),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: List.generate(_moodData.length, (index) {
-                              return FlSpot(index.toDouble(),
-                                  _moodData[index].toDouble());
-                            }),
-                            isCurved: true,
-                            gradient: LinearGradient(
-                                colors: [Colors.blueGrey, Colors.lightBlue]),
-                            barWidth: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-          ],
+          ),
         ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              for (var i = 0; i < moods.length; i++)
+                FlSpot(i.toDouble(), moods[i].mood.toDouble()),
+            ],
+            isCurved: true,
+            preventCurveOverShooting: true,
+            gradient: const LinearGradient(
+                colors: [Colors.blueGrey, Colors.lightBlue]),
+            barWidth: 4,
+            dotData: const FlDotData(show: true),
+          ),
+        ],
       ),
     );
   }

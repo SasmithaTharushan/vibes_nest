@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LibraryPage extends StatelessWidget {
@@ -36,6 +36,8 @@ class LibraryPage extends StatelessWidget {
           'https://www.globalfamilydoctor.com/site/DefaultSite/filesystem/documents/resources/MHGuidebook-EBookDownload.pdf'
     }
   ];
+
+  LibraryPage({super.key});
 
   void _openBook(String url) async {
     final Uri uri = Uri.parse(url);

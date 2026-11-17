@@ -1,76 +1,50 @@
-import 'package:flutter/material.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:material_ui/material_ui.dart';
+import '../widgets/youtube_video.dart';
+
+/// A track shown on the Music page. Titles are stored with the video ID so the
+/// page works offline and needs no YouTube Data API key.
+class Song {
+  final String videoId;
+  final String title;
+  final String artist;
+  const Song(this.videoId, this.title, this.artist);
+}
 
 class MusicPage extends StatefulWidget {
+  const MusicPage({super.key});
+
   @override
-  _MusicPageState createState() => _MusicPageState();
+  State<MusicPage> createState() => _MusicPageState();
 }
 
 class _MusicPageState extends State<MusicPage> {
   String selectedCategory = "Energizing";
 
-  final Map<String, List<String>> categorizedSongs = {
+  static const Map<String, List<Song>> categorizedSongs = {
     "Energizing": [
-      'dQw4w9WgXcQ',
-      'PsO6ZnUZI0g',
-      'ru0K8uYEZWw',
+      Song('CevxZvSJLk8', 'Roar', 'Katy Perry'),
+      Song('PsO6ZnUZI0g', 'Stronger', 'Kanye West'),
+      Song('ru0K8uYEZWw', "Can't Stop the Feeling!", 'Justin Timberlake'),
     ],
     "Positive": [
-      'ZbZSe6N_BXs',
-      'jZhQOvvV45w',
-      'OPf0YbXqDm0',
+      Song('ZbZSe6N_BXs', 'Happy', 'Pharrell Williams'),
+      Song('jZhQOvvV45w', 'Good Life', 'OneRepublic'),
+      Song('OPf0YbXqDm0', 'Uptown Funk ft. Bruno Mars', 'Mark Ronson'),
     ],
     "Calm": [
-      'UfcAVejslrU',
-      '1ZYbU82GVz4',
-      '2OEL4P1Rz04',
+      Song('UfcAVejslrU', 'Weightless', 'Marconi Union'),
+      Song('1ZYbU82GVz4', 'Flying: Relaxing Sleep Music', 'Peder B. Helland'),
+      Song('2OEL4P1Rz04', 'The Hidden Valley: Ambient Music',
+          'Soothing Relaxation'),
     ],
   };
 
-  Future<Map<String, String>> _fetchVideoDetails(String videoId) async {
-    final String apiKey =
-        'AIzaSyDAs5xGEyFiIgHInhW5qRj0n4jnBoI4PO8'; // Replace with your YouTube API key
-    final url =
-        'https://www.googleapis.com/youtube/v3/videos?id=$videoId&part=snippet,contentDetails&key=$apiKey';
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-
-      if (data['items'].isEmpty) {
-        return {
-          'videoId': videoId,
-          'title': 'Unknown Title',
-          'artist': 'Unknown Artist',
-          'duration': 'Unknown Duration',
-        };
-      }
-
-      final videoData = data['items'][0]['snippet'];
-      final duration = data['items'][0]['contentDetails']['duration'];
-
-      final title = videoData['title'];
-      final artistName = videoData['channelTitle'];
-
-      return {
-        'videoId': videoId, // Fix: Add videoId to prevent null issue
-        'title': title,
-        'artist': artistName,
-        'duration': duration,
-      };
-    } else {
-      throw Exception('Failed to load video details');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final songs = categorizedSongs[selectedCategory] ?? const <Song>[];
     return Scaffold(
       appBar: AppBar(
-        title: Text('Music & Motivation',
+        title: const Text('Music & Motivation',
             style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blue.shade400,
         elevation: 0,
@@ -87,49 +61,16 @@ class _MusicPageState extends State<MusicPage> {
           children: [
             _buildCategorySelector(),
             Expanded(
-              child: FutureBuilder<List<Map<String, String>>>(
-                future: _getSongDetails(selectedCategory),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No songs available.'));
-                  }
-
-                  return ListView.builder(
-                    padding: EdgeInsets.all(10),
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      var song = snapshot.data![index];
-                      return _buildSongCard(song);
-                    },
-                  );
-                },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(10),
+                itemCount: songs.length,
+                itemBuilder: (context, index) => _buildSongCard(songs[index]),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<List<Map<String, String>>> _getSongDetails(String category) async {
-    List<Map<String, String>> songs = [];
-
-    if (categorizedSongs.containsKey(category)) {
-      for (var videoId in categorizedSongs[category]!) {
-        try {
-          final details = await _fetchVideoDetails(videoId);
-          songs.add(details);
-        } catch (e) {
-          print("Error fetching details for video $videoId: $e");
-        }
-      }
-    }
-
-    return songs;
   }
 
   Widget _buildCategorySelector() {
@@ -159,31 +100,31 @@ class _MusicPageState extends State<MusicPage> {
     );
   }
 
-  Widget _buildSongCard(Map<String, String> song) {
+  Widget _buildSongCard(Song song) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 5,
       shadowColor: Colors.black26,
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withValues(alpha: 0.9),
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       child: ListTile(
         contentPadding: EdgeInsets.all(10),
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: Image.network(
-            'https://img.youtube.com/vi/${song['videoId']}/0.jpg',
+            'https://img.youtube.com/vi/${song.videoId}/0.jpg',
             width: 60,
             height: 60,
             fit: BoxFit.cover,
           ),
         ),
         title: Text(
-          song['title']!,
+          song.title,
           style: TextStyle(
               fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         subtitle: Text(
-          song['artist']!,
+          song.artist,
           style: TextStyle(fontSize: 14, color: Colors.black54),
         ),
         trailing: Icon(Icons.play_arrow_rounded,
@@ -193,7 +134,7 @@ class _MusicPageState extends State<MusicPage> {
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  YouTubePlayerScreen(videoId: song['videoId']!),
+                  YouTubePlayerScreen(videoId: song.videoId),
             ),
           );
         },
@@ -202,47 +143,20 @@ class _MusicPageState extends State<MusicPage> {
   }
 }
 
-class YouTubePlayerScreen extends StatefulWidget {
+class YouTubePlayerScreen extends StatelessWidget {
+  const YouTubePlayerScreen({super.key, required this.videoId});
+
   final String videoId;
-  YouTubePlayerScreen({required this.videoId});
-
-  @override
-  _YouTubePlayerScreenState createState() => _YouTubePlayerScreenState();
-}
-
-class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
-  late YoutubePlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: YoutubePlayerFlags(autoPlay: true, mute: false),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text("Now Playing", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Now Playing',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.purple.shade300,
       ),
-      body: Center(
-        child: YoutubePlayer(
-          controller: _controller,
-          showVideoProgressIndicator: true,
-          progressIndicatorColor: Colors.purpleAccent,
-        ),
-      ),
+      body: Center(child: YouTubeVideo(videoId: videoId)),
     );
   }
 }
