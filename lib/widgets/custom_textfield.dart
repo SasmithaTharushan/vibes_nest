@@ -24,11 +24,11 @@ class CustomTextfield extends StatelessWidget {
         border: InputBorder.none,
         prefixIcon: Icon(
           icon,
-          color: Constants.blackColor.withOpacity(.3),
+          color: Constants.blackColor.withValues(alpha: .3),
         ),
         hintText: hintText,
       ),
-      cursorColor: Constants.blackColor.withOpacity(.5),
+      cursorColor: Constants.blackColor.withValues(alpha: .5),
     );
   }
 }

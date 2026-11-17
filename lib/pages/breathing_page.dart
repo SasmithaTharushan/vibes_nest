@@ -5,7 +5,7 @@ class BreathingPage extends StatefulWidget {
   const BreathingPage({super.key});
 
   @override
-  _BreathingPageState createState() => _BreathingPageState();
+  State<BreathingPage> createState() => _BreathingPageState();
 }
 
 class _BreathingPageState extends State<BreathingPage> {
