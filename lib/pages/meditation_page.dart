@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../widgets/youtube_video.dart';
 
 class MeditationPage extends StatefulWidget {
   const MeditationPage({super.key});
@@ -9,7 +9,6 @@ class MeditationPage extends StatefulWidget {
 }
 
 class _MeditationPageState extends State<MeditationPage> {
-  late YoutubePlayerController _controller;
 
   // 🔹 List of meditation videos with unique video IDs
   final List<Map<String, dynamic>> videoData = [
@@ -48,22 +47,7 @@ class _MeditationPageState extends State<MeditationPage> {
   ];
 
   /// 🔹 Opens a YouTube video in a dialog box
-  void _playVideo(String videoId) {
-    _controller = YoutubePlayerController(
-      initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-      ),
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: YoutubePlayer(controller: _controller),
-      ),
-    ).then((_) => _controller.dispose());
-  }
+  void _playVideo(String videoId) => showVideoDialog(context, videoId);
 
   @override
   Widget build(BuildContext context) {

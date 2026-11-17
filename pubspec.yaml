@@ -16,7 +16,7 @@ dependencies:
   animated_bottom_navigation_bar: ^1.4.0
   page_transition: ^2.2.1
   url_launcher: ^6.1.14
-  youtube_player_flutter: ^9.1.1
+  youtube_player_flutter: 10.0.2
   intl: 0.20.3
   shared_preferences: ^2.5.2
   fl_chart: ^0.70.2

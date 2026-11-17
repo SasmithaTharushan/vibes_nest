@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../widgets/youtube_video.dart';
 
 /// A track shown on the Music page. Titles are stored with the video ID so the
 /// page works offline and needs no YouTube Data API key.
@@ -143,47 +143,20 @@ class _MusicPageState extends State<MusicPage> {
   }
 }
 
-class YouTubePlayerScreen extends StatefulWidget {
-  final String videoId;
+class YouTubePlayerScreen extends StatelessWidget {
   const YouTubePlayerScreen({super.key, required this.videoId});
 
-  @override
-  _YouTubePlayerScreenState createState() => _YouTubePlayerScreenState();
-}
-
-class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
-  late YoutubePlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: YoutubePlayerFlags(autoPlay: true, mute: false),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final String videoId;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text("Now Playing", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Now Playing',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.purple.shade300,
       ),
-      body: Center(
-        child: YoutubePlayer(
-          controller: _controller,
-          showVideoProgressIndicator: true,
-          progressIndicatorColor: Colors.purpleAccent,
-        ),
-      ),
+      body: Center(child: YouTubeVideo(videoId: videoId)),
     );
   }
 }

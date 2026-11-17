@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../widgets/youtube_video.dart';
 
 class BreathingPage extends StatefulWidget {
   const BreathingPage({super.key});
@@ -33,24 +33,8 @@ class _BreathingPageState extends State<BreathingPage> {
     },
   ];
 
-  late YoutubePlayerController _controller;
 
-  void _playVideo(String videoId) {
-    _controller = YoutubePlayerController(
-      initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-      ),
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: YoutubePlayer(controller: _controller),
-      ),
-    ).then((_) => _controller.dispose());
-  }
+  void _playVideo(String videoId) => showVideoDialog(context, videoId);
 
   @override
   Widget build(BuildContext context) {
