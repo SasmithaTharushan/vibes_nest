@@ -22,7 +22,7 @@ class _ProfilePageState extends State<ProfilePage> {
       'I use Vibes Nest to look after my mental wellbeing. Check it out: '
       'https://github.com/SasmithaTharushan/vibes_nest';
   static const _privacyUrl =
-      'https://github.com/SasmithaTharushan/vibes_nest/blob/main/PRIVACY.md';
+      'https://github.com/SasmithaTharushan/vibes_nest/blob/HEAD/PRIVACY.md';
 
   AuthService get _auth => AppServices.auth(context);
 
